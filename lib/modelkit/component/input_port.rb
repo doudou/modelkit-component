@@ -1,82 +1,73 @@
 module ModelKit
     module Component
-        # Specification for an input port
+        # Model of an input port
         class InputPort < Port
-            attr_reader :required_connection_type
-
-            def initialize(*args)
+            # Create an input port
+            #
+            # @param (see Port#initialize)
+	    def initialize(node, name, type)
                 super
-                @required_connection_type = :data
+                @needs_reliable_connection = false
+                @clean_on_node_start = false
+                @multiplexes = false
             end
 
-            attr_predicate :trigger_port?, true
-
-            # If called, this port will be registered on the task as a trigger
-            # port,
-            #
-            # i.e. the following
-            #
-            #   task_context "Name" do
-            #     input_port("port", "int").
-            #       trigger_port
-            #   end
-            #
-            # is equivalent to
-            #
-            #   task_context "Name" do
-            #     input_port("port", "int")
-            #     port_driven 'port'
-            #   end
-            #
-            # The difference with port_driven is that it works on dynamic ports
-            # as well
-            def task_trigger
-                task.port_driven(name)
+            # Overloaded from {Port#output_port?} to mark that instances of this
+            # class are outputs
+            def output_port?
+                false
             end
 
-            # True if connections to this port must use a buffered.
-            # In general, it means that the task's code check the return value
-            # of read(), as in
+            # Returns true if the underlying node requires connections to this
+            # port to be reliable (i.e. non-lossy).
             #
-            #   if (_input.read(value))
-            #   {
-            #       // data is available, do something
-            #   }
-            def needs_buffered_connection; @required_connection_type = :buffer; self end
+            # @see needs_reliable_connection
+            def needs_reliable_connection?
+                @needs_reliable_connection
+            end
 
-            # True if connections to this port must use a data policy.
-            # 
-            # This should not be useful in general
-            def needs_data_connection; @required_connection_type = :data; self end
-
-            # Returns true if the task context requires connections to this port to
-            # be reliable (i.e. non-lossy).
+            # Declares that the node requires a non-lossy connection towards
+            # this port
             #
-            # See #needs_reliable_policy for more information
-            def needs_reliable_connection?; @needs_reliable_connection end
+            # @return [self]
+            def needs_reliable_connection
+                @needs_reliable_connection = true
+                self
+            end
 
-            # Declares that the task context requires a non-lossy policy
+            # Control whather samples present but unread on this port should be
+            # cleaned when the node is started
             #
-            # This is different from #requires_buffered_connection as a data
-            # policy could be used if the period of the connection's source is
-            # much longer than the period of the connection's end (for
-            # instance).
-            def needs_reliable_connection; @needs_reliable_connection = true; self end
+            # The default is to clean the port, call this to disable the
+            # behaviour
+            #
+            # @return [self]
+            def do_not_clean_on_node_start
+                @clean_on_node_start = false
+                self
+            end
 
-            # In oroGen, input ports are cleared in the startHook()
+            # Whether samples present but unread on this port will be cleaned on
+            # startup
             #
-            # Calling #do_not_clean disables this behaviour for this particular
-            # port
-            def do_not_clean
-                @do_not_clean = true
+            # @see do_not_clean_on_node_start
+            def clean_on_node_start?
+                @clean_on_node_start
             end
 
             # If true, this port accepts to have multiple active connections at the same time
+            #
+            # The default is for ports to not accept multiplexing
+            #
+            # @see multiplexes
             def multiplexes?
-                !!@multiplexes
+                @multiplexes
             end
 
             # Declares that this port accepts multiple active connections
+            #
+            # @see multiplexes?
+            # @return [self]
             def multiplexes
                 @multiplexes = true
                 self

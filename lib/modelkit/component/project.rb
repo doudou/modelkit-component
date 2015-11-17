@@ -31,7 +31,8 @@ module ModelKit
                 project
             end
 
-            def initialize(loader)
+            def initialize(loader, name: nil)
+                @name = name
                 @loader = loader
                 @tasks = Hash.new
                 @self_tasks = Hash.new

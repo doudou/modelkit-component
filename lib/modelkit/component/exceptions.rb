@@ -15,5 +15,13 @@ module ModelKit
         # Exception raised when trying to resolve a deployed node by name, but
         # multiple matches exist
         class AmbiguousdeployedNodeName < AmbiguousName; end
+
+        # Base class for all exceptions that represent an attempt to create an
+        # invalid model
+        class ModelError < RuntimeError; end
+        
+        # Exception raised when one tries to set incompatible combinations of
+        # attributes on the models
+        class Incompatibility < ModelError; end
     end
 end

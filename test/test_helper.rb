@@ -27,8 +27,12 @@ module ModelKit
                 @dummy_loader ||= Loaders::Base.new
             end
             def dummy_project
-                @dummy_project ||= Project.new(dummy_loader)
+                @dummy_project ||= Project.new(dummy_loader, name: 'dummy')
             end
+            def dummy_node
+                @dummy_node ||= Node.new(dummy_project, name: 'Task')
+            end
+
             def create_dummy_type(typename)
                 dummy_project.loader.registry.create_numeric(typename)
             end

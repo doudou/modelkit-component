@@ -2,14 +2,12 @@ require 'test_helper'
 
 module ModelKit::Component
     describe ConfigurationObject do
-        attr_reader :node
         before do
-            @node = ModelKit::Component::Node.new(dummy_project)
             create_dummy_interface_type '/double'
         end
 
         subject do
-            node.property('p', '/double')
+            dummy_node.property('p', '/double')
         end
 
         it "is not dynamic by default" do
@@ -28,7 +26,7 @@ module ModelKit::Component
                 subject.default_value 10
                 subject.doc "with documentation"
                 pp = PP.new("")
-                flexmock(node).should_receive(:pretty_print)
+                flexmock(dummy_node).should_receive(:pretty_print)
                 subject.pretty_print(pp)
             end
         end
@@ -46,11 +44,11 @@ module ModelKit::Component
                 assert_equal true, subject.to_h[:dynamic]
             end
             it "marshals empty documentation as an empty string" do
-                p = node.property 'with_no_documentation', '/double'
+                p = dummy_node.property 'with_no_documentation', '/double'
                 assert_equal "", p.to_h[:doc]
             end
             it "marshals the documentation" do
-                subject = node.property('with_documentation', '/double').
+                subject = dummy_node.property('with_documentation', '/double').
                     doc('with documentation')
                 assert_equal "with documentation", subject.to_h[:doc]
             end
