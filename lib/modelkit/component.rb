@@ -10,6 +10,8 @@ require 'utilrb/module/attr_predicate'
 require 'utilrb/module/dsl_attribute'
 require 'set'
 
+require 'metaruby/dsls'
+
 require 'modelkit/types'
 
 require 'modelkit/component/version'

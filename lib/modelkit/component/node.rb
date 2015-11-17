@@ -531,7 +531,7 @@ module ModelKit
                     end
                 end
 
-		klass.new(self, name, type, default_value)
+		klass.new(self, name, type, default_value: default_value)
             end
 
             # Create a new property with the given name, type and default value

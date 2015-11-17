@@ -1,33 +1,37 @@
 module ModelKit
     module Component
         # Representation of a task's attribute or property
-	class ConfigurationObject
-            # The component on which this property is attached
-            attr_accessor :component
-	    # The property name
-	    attr_reader :name
-
-	    # The property type, as a ModelKit::Types::Type object from the underlying
-	    # project's type registry
-	    attr_reader :type
+        class ConfigurationObject
+            # This object's node
+            # @return [Node]
+            attr_accessor :node
+            # The property name
+            # @return [String]
+            attr_reader :name
+            # The property type, as a ModelKit::Types::Type object from the
+            # underlying project's type registry
+            # @return [Model<Types::Type>]
+            attr_reader :type
 
             # Whether this configuration object can be set dynamically
             attr_predicate :dynamic?, true
 
-	    # The property's default value
+            # The property's default value
             #
-            # @return [Model<Types::Type>]
-	    attr_reader :default_value
+            # @return [Types::Type]
+            dsl_attribute :default_value
 
-	    # Create a new property with the given name, type and default value
-	    def initialize(component, name, type, default_value: nil)
+            # Create a new property with the given name, type and default value
+            def initialize(node, name, type, default_value: nil)
                 name = name.to_s
-                type = component.project.resolve_type(type)
+                type = node.project.resolve_type(type)
                 @dynamic = false
-		@component, @name, @type, @default_value = component, name, type, default_value
+                @node, @name, @type, @default_value = node, name, type, default_value
                 @doc = nil
-	    end
+            end
 
+            # Declares that this object can be modified while the node is
+            # running
             def dynamic
                 @dynamic = true
                 self
@@ -50,12 +54,9 @@ module ModelKit
                 pp.text "#{name}:#{type.name}#{default}"
             end
 
-	    # call-seq:
-	    #	doc new_doc -> self
-            #	doc ->  current_doc
-	    #
-	    # Gets/sets a string describing this object
-	    dsl_attribute(:doc) { |value| value.to_s }
+            # Gets/sets a string describing this object
+            # @return [String]
+            dsl_attribute(:doc) { |value| value.to_s }
 
             # Converts this model into a representation that can be fed to e.g.
             # a JSON dump, that is a hash with pure ruby key / values.
@@ -85,7 +86,7 @@ module ModelKit
                 end
                 result
             end
-	end
+        end
     end
 end
 
