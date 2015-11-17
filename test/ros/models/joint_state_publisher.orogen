@@ -1,5 +1,0 @@
-name "joint_state_publisher"
-
-ros_node "joint_state_publisher" do
-end
-

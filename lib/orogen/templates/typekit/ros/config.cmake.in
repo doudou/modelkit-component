@@ -1,3 +1,0 @@
-<% ros_pkg_name = typekit.plugin('ros').ros_package_name_for_typekit(typekit) %>
-set(<%= ros_pkg_name %>_DIR @CMAKE_INSTALL_PREFIX@/share/<%= ros_pkg_name %>/cmake)
-
