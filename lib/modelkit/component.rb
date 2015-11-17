@@ -16,6 +16,8 @@ require 'modelkit/component/version'
 require 'modelkit/component/doc'
 require 'modelkit/component/enumerate_inherited'
 
+require 'modelkit/component/exceptions'
+
 require 'modelkit/component/configuration_object'
 require 'modelkit/component/attribute'
 require 'modelkit/component/property'

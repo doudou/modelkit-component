@@ -83,6 +83,17 @@ module ModelKit
                 def added_child(loader)
                 end
 
+                # Parse a textual representation of a project into a {Project}
+                # object
+                def parse_project_text(project, path, text, verbose: false)
+                    if !path
+                        project.instance_eval text
+                    else
+                        project.instance_eval text, path, 1
+                    end
+                    self
+                end
+
                 # Returns the project model corresponding to the given name
                 #
                 # @param [String] the project name
@@ -98,7 +109,7 @@ module ModelKit
 
                     text, path = project_model_text_from_name(name)
 
-                    ModelKit.info "loading oroGen project #{name}"
+                    ModelKit::Component.info "loading project #{name}"
                     project = Component::Project.new(root_loader)
                     project.typekit =
                         if has_typekit?(name)
@@ -107,7 +118,7 @@ module ModelKit
                             Component::Typekit.new(root_loader, name)
                         end
 
-                    Loaders::Project.new(project).__eval__(path, text)
+                    parse_project_text(project, path, text)
                     if project.name != name
                         raise InternalError, "inconsistency: got project #{project.name} while loading #{name}"
                     end
@@ -222,7 +233,7 @@ module ModelKit
                         if deployment_names.empty?
                             raise DeployedTaskModelNotFound, "cannot find a deployed task called #{name}"
                         elsif deployment_names.size > 1
-                            raise AmbiguousName, "more than one deployment defines a deployed task called #{name}: #{deployment_names.map(&:name).sort.join(", ")}"
+                            raise AmbiguousdeployedNodeName, "more than one deployment defines a deployed task called #{name}: #{deployment_names.map(&:name).sort.join(", ")}"
                         end
                         deployment = deployment_model_from_name(deployment_names.first)
                     end

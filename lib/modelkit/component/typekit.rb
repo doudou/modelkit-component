@@ -45,8 +45,7 @@ module ModelKit
 
             def self.from_raw_data(loader, name, registry_xml, typelist_txt, parsed_xml: nil)
                 typekit_registry = Types::Registry.new
-                Types::Registry.add_standard_cxx_types(typekit_registry)
-                typekit_registry.merge_xml(registry_xml)
+                typekit_registry.merge(Types::Registry.from_xml(registry_xml))
 
                 typekit_typelist, typekit_interface_typelist = parse_typelist(typelist_txt)
                 typekit = self.new(loader, name,

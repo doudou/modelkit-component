@@ -510,7 +510,6 @@ module ModelKit
 	    end
 
             def configuration_object(klass, name, type, default_value)
-                name = ModelKit.verify_valid_identifier(name)
                 check_uniqueness(name)
 
                 begin
@@ -766,7 +765,7 @@ module ModelKit
             # Create a new operation with the given name. Use the returned
             # Operation object to configure it further
 	    def operation(name)
-                name = ModelKit.verify_valid_identifier(name)
+                name = name.to_str
 		@operations[name] = op = Operation.new(self, name)
                 Component.load_documentation(op, /operation/)
                 op
@@ -995,7 +994,7 @@ module ModelKit
 	    #
 	    # See also #input_port
 	    def output_port(name, type, options = Hash.new)
-                name = ModelKit.verify_valid_identifier(name)
+                name = name.to_str
                 check_uniqueness(name)
                 options = Kernel.validate_options options,
                     :class => OutputPort
@@ -1013,7 +1012,7 @@ module ModelKit
 	    #
 	    # See also #output_port
 	    def input_port(name, type, options = Hash.new)
-                name = ModelKit.verify_valid_identifier(name)
+                name = name.to_str
                 check_uniqueness(name)
                 options = Kernel.validate_options options,
                     :class => InputPort
