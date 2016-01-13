@@ -3,76 +3,72 @@ module ModelKit
         # Representation of an operation.
         #
         # Operations are procedure calls that are served by a {Node}
-	class Operation
-	    # The node this operation is part of
-	    attr_reader :node
-	    # The operation name
-	    attr_reader :name
-            # True if this operation runs in the caller's execution context, or
-            # in the callee. The default is callee.
+        class Operation
+            class DuplicateArgument < ArgumentError; end
+
+            # The node this operation is part of
+            attr_reader :node
+            # The loader used to resolve argument and return types
+            attr_reader :loader
+            # The operation name
+            attr_reader :name
+            # True if this operation runs in the callee's execution context, or
+            # outside of it. The default is callee.
+            attr_predicate :in_callee_thread?
+            # Whether this operation is defined for the benefit of the
+            # component's user (false) or for the framework's (true)
+            attr_predicate :hidden?, true
+
+            # @!method doc
+            #   @return self
+            # @!method doc(string)
+            #   @return [String]
             #
-            # See also #runs_in_caller_thread and #runs_in_callee_thread
-            attr_reader :in_caller_thread
+            # Gets/sets a string describing this object
+            dsl_attribute(:doc) { |value| value.to_s }
 
-	    def initialize(task, name)
-                name = name.to_s
-		if name !~ /^\w+$/
-                    raise ArgumentError, "#{self.class.name.downcase} names need to be valid C++ identifiers, i.e. contain only alphanumeric characters and _ (got #{name})"
-		end
+            Argument   = Struct.new :name, :type, :doc
 
-		@task = task
-		@name = name
-                @return_type = [nil, 'void', ""]
-		@arguments = []
-                @in_caller_thread = false
+            # The set of arguments of this operation, as an array of [name, type,
+            # doc] elements. The +type+ objects are Types::Type instances.
+            # 
+            # @return [Array<Argument>]
+            attr_reader :arguments
+
+            ReturnValue = Struct.new :type, :doc
+
+            # The description of this operation's returned value
+            #
+            # @return [ReturnValue] the return type and the
+            #   associated documentation. {ReturnValue#type} is {VoidType} if
+            #   the operation does not return anything.
+            # @see #returns
+            attr_reader :return_value
+
+            def initialize(node, name)
+                @node = node
+                @name = name.to_s
+                @loader = node.loader
+                @return_value = ReturnValue.new(VoidType, nil)
+                @arguments = []
+                @in_callee_thread = true
                 @doc = nil
 
                 super()
-	    end
+            end
 
-            # Declares that the C++ method associated with this operation should
-            # be executed in the caller thread (default is callee thread)
-            #
-            # See also #runs_in_callee_thread and #in_caller_thread
-            def runs_in_caller_thread
-                @in_caller_thread = true
+            # Declares that the operation is executed outside the callee's
+            # execution context
+            def runs_outside_callee_thread
+                @in_callee_thread = false
                 self
             end
 
-            # Declares that the C++ method associated with this operation should
-            # be executed in the caller thread
-            #
-            # See also #runs_in_callee_thread and #in_caller_thread
+            # Declares that the operation is executed within the callee's
+            # execution context
             def runs_in_callee_thread
-                @in_caller_thread = false
+                @in_callee_thread = true
                 self
-            end
-
-	    # call-seq:
-	    #	doc new_doc -> self
-            #	doc ->  current_doc
-	    #
-	    # Gets/sets a string describing this object
-	    dsl_attribute(:doc) { |value| value.to_s }
-
-	    # The set of arguments of this operation, as an array of [name, type,
-	    # doc] elements. The +type+ objects are Types::Type instances.
-            # 
-            # See #argument
-	    attr_reader :arguments
-
-            # This version of find_interface_type returns both a Types::Type object and
-            # a normalized version for +name+. It does accept const and
-            # reference qualifiers in +name+.
-            def find_interface_type(qualified_type)
-                if qualified_type.respond_to?(:name)
-                    qualified_type = qualified_type.name
-                end
-                type_name = ModelKit.unqualified_cxx_type(qualified_type)
-                typelib_type_name = ::Types::GCCXMLLoader.cxx_to_typelib(type_name)
-		type      = task.project.find_interface_type(typelib_type_name)
-                ModelKit.validate_toplevel_type(type)
-                return type, qualified_type.gsub(type_name, type.cxx_name)
             end
 
             # Defines the next argument of this operation.
@@ -82,19 +78,21 @@ module ModelKit
             #   as a type object or as a type name that can be resolved on the
             #   underlying node's loader
             # @param [String] doc the argument documentation
-	    def argument(name, qualified_type, doc = "")
-                type, qualified_type = find_interface_type(qualified_type)
-		arguments << [name, type, doc, qualified_type]
-		self
-	    end
+            def argument(name, type, doc = nil)
+                type = loader.resolve_interface_type(type)
+                if arguments.any? { |a| a.name == name }
+                    raise DuplicateArgument, "#{self} already has an argument named #{name}"
+                end
+                arguments << Argument.new(name, type, doc)
+                self
+            end
 
-	    # The return type of this operation
+            # Finds an argument by name
             #
-            # @return [(Model<Types::Type>,String)] the return type and the
-            #   associated documentation. The type is {VoidType} if the
-            #   operation does not return anything.
-            # @see #returns
-	    attr_reader :return_type
+            # @return [Argument,nil]
+            def find_argument_by_name(name)
+                arguments.find { |a| a.name == name }
+            end
 
             # Sets the return type for this operation
             #
@@ -102,45 +100,40 @@ module ModelKit
             #   as a type object or as a type name that can be resolved on the
             #   underlying node's loader
             # @param [String] doc documentation about the returned value
-	    def returns(type, doc = "")
-                @return_type = 
-		self
-	    end
+            def returns(type, doc = "")
+                @return_value = ReturnValue.new(loader.resolve_interface_type(type), doc)
+                self
+            end
 
             # Declares that this operation does not return anything
             def returns_nothing
-                returns(VoidType)
+                @return_value = ReturnValue.new(VoidType, nil)
+                self
             end
 
             # Tests whether this operation returns anything
-            def returns?
-                @return_type[0] != VoidType
-            end
-
-            # Returns true if this operation's signature is not void
             def has_return_value?
-                !!@return_type.first
+                @return_value.type != VoidType
             end
 
             def pretty_print(pp)
-                pp.text name
+                pp.text "#{name}:"
                 pp.nest(2) do
-                    if !self.doc
+                    if doc
                         pp.breakable
-                        pp.text self.doc
+                        pp.text ": #{doc}"
                     end
-                    if !self.return_type[2].empty?
+                    if has_return_value?
                         pp.breakable
-                        pp.text "Returns: #{self.return_type[2]}"
+                        pp.text "Returns: #{self.return_value.type} (#{self.return_value.doc}"
                     end
-                    arguments.map do |name, type, doc, qualified_type|
+                    arguments.map do |arg|
                         pp.breakable
-                        pp.text "#{name}: #{doc}"
+                        pp.text "#{arg.name}: #{arg.type} (#{arg.doc})"
                     end
                 end
             end
 
-            attr_predicate :hidden?, true
             # Converts this model into a representation that can be fed to e.g.
             # a JSON dump, that is a hash with pure ruby key / values.
             #
@@ -163,14 +156,14 @@ module ModelKit
             def to_h
                 result = Hash[name: name, doc: (doc || "")]
                 if has_return_value?
-                    result[:returns] = Hash[type: self.return_type[0].to_h, doc: self.return_type[2]]
+                    result[:returns] = Hash[type: self.return_value.type.to_h, doc: (self.return_value.doc || '')]
                 end
-                result[:arguments] = arguments.map do |name, type, doc, qualified_type|
-                    Hash[name: name, type: type.to_h, doc: doc]
+                result[:arguments] = arguments.map do |arg|
+                    Hash[name: arg.name, type: arg.type.to_h, doc: (arg.doc || '')]
                 end
                 result
             end
-	end
+        end
     end
 end
 

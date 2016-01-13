@@ -23,11 +23,12 @@ module ModelKit
 
             # Create a new property with the given name, type and default value
             def initialize(node, name, type, default_value: nil)
-                name = name.to_s
-                type = node.project.resolve_type(type)
+                @node, @name = node, name.to_s
                 @dynamic = false
-                @node, @name, @type, @default_value = node, name, type, default_value
                 @doc = nil
+
+                @type = node.loader.resolve_interface_type(type)
+                @default_value = ModelKit::Types.from_ruby(default_value, type)
             end
 
             # Declares that this object can be modified while the node is

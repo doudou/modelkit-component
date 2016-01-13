@@ -3,7 +3,7 @@ module ModelKit
         # Generic representation of ports. The actual ports are either
         # instance of InputPort or OutputPort
         class Port
-            # The port task
+            # The port's node
             attr_reader :node
             # The port name
             attr_reader :name
@@ -78,9 +78,8 @@ module ModelKit
             end
 
             def initialize(node, name, type)
-                type = node.project.find_interface_type(type)
-                @node, @name, @type = node, name, type
-
+                @node, @name = node, name
+                @type = node.loader.resolve_interface_type(type)
                 @doc = nil
             end
 

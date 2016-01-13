@@ -40,6 +40,7 @@ module ModelKit
                 type = create_dummy_type(typename)
                 flexmock(dummy_loader).should_receive(:interface_type?).pass_thru.by_default
                 flexmock(dummy_loader).should_receive(:interface_type?).with(type).and_return(true)
+                type
             end
         end
     end
