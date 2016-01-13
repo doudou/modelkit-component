@@ -8,7 +8,7 @@ module ModelKit
 	    def initialize(node, name, type)
                 super
                 @needs_reliable_connection = false
-                @clean_on_node_start = false
+                @clean_on_node_start = true
                 @multiplexes = false
             end
 
