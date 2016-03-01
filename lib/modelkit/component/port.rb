@@ -2,11 +2,7 @@ module ModelKit
     module Component
         # Generic representation of ports. The actual ports are either
         # instance of InputPort or OutputPort
-        class Port
-            # The port's node
-            attr_reader :node
-            # The port name
-            attr_reader :name
+        class Port < InterfaceObject
             # The port type
             attr_reader :type
 
@@ -78,15 +74,9 @@ module ModelKit
             end
 
             def initialize(node, name, type)
-                @node, @name = node, name
-                @type = node.loader.resolve_interface_type(type)
-                @doc = nil
+                @type = node.loader.resolve_type(type)
+                super(node, name)
             end
-
-            # Gets/sets a string describing this object
-            #
-            # @return [String]
-            dsl_attribute(:doc) { |value| value.to_s }
         end
     end
 end

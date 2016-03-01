@@ -8,24 +8,27 @@ module ModelKit
                 # @return [Hash<String,Component::Project>]
                 attr_reader :loaded_projects
 
-                # Set of task models that are known to us
-                attr_reader :loaded_task_models
+                # Set of node models that are known to us
+                #
+                # @return [Hash<String,Node>]
+                attr_reader :loaded_node_models
 
                 # Set of deployment models that are known to us
                 attr_reader :loaded_deployment_models
 
                 # The registry that includes types from all loaded typekits
+                #
+                # @return [ModelKit::Types::Registry]
                 attr_reader :registry
 
-                # The list of types that can be used on an oroGen interface
-                attr_reader :interface_typelist
-
                 # A mapping from type names to the typekits that define them
+                #
+                # @return [Hash<ModelKit::Types::Type,Set<String>>]
                 attr_reader :typekits_by_type_name
 
                 # Set of typekits loaded so far
                 #
-                # @return [Hash<String,Component::Typekit>]
+                # @return [Hash<String,Typekit>]
                 attr_reader :loaded_typekits
 
                 # The loader that should be used to resolve dependencies
@@ -73,13 +76,17 @@ module ModelKit
                 def clear
                     @loaded_projects = Hash.new
                     @loaded_typekits = Hash.new
-                    @loaded_task_models = Hash.new
+                    @loaded_node_models = Hash.new
                     @loaded_deployment_models = Hash.new
                     @typekits_by_type_name = Hash.new
                     @registry = Types::Registry.new
-                    @interface_typelist = Set.new
+                    registry.create_null '/modelkit/component/void'
                 end
 
+                # Hook called when this loader is used as a root loader on
+                # another loader
+                #
+                # @param [Base] loader the loader that will use self as root
                 def added_child(loader)
                 end
 
@@ -101,23 +108,16 @@ module ModelKit
                 #   name.
                 # @return [ModelKit::Component::Project]
                 def project_model_from_name(name)
+                    name = name.to_str
                     if project = loaded_projects[name]
                         return project
                     end
 
-                    name = name.to_str
-
                     text, path = project_model_text_from_name(name)
 
-                    ModelKit::Component.info "loading project #{name}"
+                    Component.info "loading project #{name}"
                     project = Component::Project.new(root_loader)
-                    project.typekit =
-                        if has_typekit?(name)
-                            typekit_model_from_name(name)
-                        else
-                            Component::Typekit.new(root_loader, name)
-                        end
-
+                    project.typekit = typekit_model_from_name(name)
                     parse_project_text(project, path, text)
                     if project.name != name
                         raise InternalError, "inconsistency: got project #{project.name} while loading #{name}"
@@ -131,7 +131,7 @@ module ModelKit
                 #
                 # @param [Boolean] initial_events if true, the callbacks will be
                 #   called instantly with the projects that have already been loaded
-                def on_project_load(initial_events = true, &block)
+                def on_project_load(initial_events: true, &block)
                     project_load_callbacks << block
                     if initial_events
                         current_set = loaded_projects.values.dup
@@ -150,40 +150,40 @@ module ModelKit
                     project_load_callbacks.delete(callback)
                 end
 
-                # Returns the task library model corresponding to the given name
+                # Returns the node library model corresponding to the given name
                 # @param (see project_model_from_name)
-                # @raise [ProjectNotFound] if there is no task library with that
+                # @raise [ProjectNotFound] if there is no node library with that
                 #   name. This does including having a project with that name if the
-                #   project defines no tasks.
+                #   project defines no nodes.
                 # @return (see project_model_from_name)
-                def task_library_model_from_name(name)
+                def node_library_model_from_name(name)
                     project = project_model_from_name(name)
-                    if project.self_tasks.empty?
-                        raise ProjectNotFound, "there is an oroGen project called #{name}, but it defines no tasks"
+                    if project.node_models.empty?
+                        raise ProjectNotFound, "there is a project called #{name}, but it defines no node models"
                     end
                     project
                 end
 
-                # Returns the task model object corresponding to a model name
+                # Returns the node model object corresponding to a model name
                 #
-                # @param [String] name the task model name
-                # @return [Component::TaskContext]
-                # @raise [TaskModelNotFound] if there are no such model
+                # @param [String] name the node model name
+                # @return [Component::Node]
+                # @raise [NodeModelNotFound] if there are no such model
                 # @raise (see project_model_from_name)
-                def task_model_from_name(name)
-                    if model = loaded_task_models[name]
+                def node_model_from_name(name)
+                    if model = loaded_node_models[name]
                         return model
                     end
 
-                    tasklib_name = find_task_library_from_task_model_name(name)
-                    if !tasklib_name
-                        raise TaskModelNotFound, "no task model #{name} is registered"
+                    nodelib_name = find_node_library_from_node_model_name(name)
+                    if !nodelib_name
+                        raise NodeModelNotFound, "no node model #{name} is registered"
                     end
 
-                    tasklib = project_model_from_name(tasklib_name)
-                    result = tasklib.tasks[name]
+                    nodelib = project_model_from_name(nodelib_name)
+                    result = nodelib.node_models[name]
                     if !result
-                        raise InternalError, "while looking up model of #{name}: found project #{tasklib_name}, but this project does not actually have a task model called #{name}"
+                        raise InternalError, "while looking up model of #{name}: found project #{nodelib_name}, but this project does not actually have a node model called #{name}"
                     end
 
                     result
@@ -212,40 +212,40 @@ module ModelKit
                     deployment
                 end
 
-                # Returns the deployed task model for the given name
+                # Returns the deployed node model for the given name
                 #
-                # @param [String] name the deployed task name
+                # @param [String] name the deployed node name
                 # @param [String] deployment_name () the name of the deployment in which the
-                #   task is defined. It must be given only when more than one deployment
-                #   defines a task with the requested name
-                # @return [ModelKit::Component::TaskDeployment] the deployed task model
-                # @raise [DeployedTaskModelNotFound] if no deployed tasks with that name exists
-                # @raise [DeployedTaskModelNotFound] if deployment_name was given, but the requested
-                #   task is not defined in this deployment
-                # @raise [ModelKit::AmbiguousName] if more than one task exists with that
+                #   node is defined. It must be given only when more than one deployment
+                #   defines a node with the requested name
+                # @return [ModelKit::Component::NodeDeployment] the deployed node model
+                # @raise [DeployedNodeModelNotFound] if no deployed nodes with that name exists
+                # @raise [DeployedNodeModelNotFound] if deployment_name was given, but the requested
+                #   node is not defined in this deployment
+                # @raise [ModelKit::AmbiguousName] if more than one node exists with that
                 #   name. In that case, you will have to provide the deployment name
                 #   explicitly using the second argument
-                def deployed_task_model_from_name(name, deployment_name = nil)
+                def deployed_node_model_from_name(name, deployment_name = nil)
                     if deployment_name
                         deployment = deployment_model_from_name(deployment_name)
                     else
-                        deployment_names = find_deployments_from_deployed_task_name(name)
+                        deployment_names = find_deployments_from_deployed_node_name(name)
                         if deployment_names.empty?
-                            raise DeployedTaskModelNotFound, "cannot find a deployed task called #{name}"
+                            raise DeployedNodeModelNotFound, "cannot find a deployed node called #{name}"
                         elsif deployment_names.size > 1
-                            raise AmbiguousdeployedNodeName, "more than one deployment defines a deployed task called #{name}: #{deployment_names.map(&:name).sort.join(", ")}"
+                            raise AmbiguousdeployedNodeName, "more than one deployment defines a deployed node called #{name}: #{deployment_names.map(&:name).sort.join(", ")}"
                         end
                         deployment = deployment_model_from_name(deployment_names.first)
                     end
 
-                    if !(task = deployment.find_task_by_name(name))
+                    if !(node = deployment.find_node_by_name(name))
                         if deployment_name
-                            raise DeployedTaskModelNotFound, "deployment #{deployment_name} does not have a task called #{name}"
+                            raise DeployedNodeModelNotFound, "deployment #{deployment_name} does not have a node called #{name}"
                         else
-                            raise InternalError, "deployment #{deployment_name} was supposed to have a task called #{name} but does not"
+                            raise InternalError, "deployment #{deployment_name} was supposed to have a node called #{name} but does not"
                         end
                     end
-                    task
+                    node
                 end
 
                 # Loads a typekit from its name
@@ -290,8 +290,7 @@ module ModelKit
                     end
 
                     registry.merge typekit.registry
-                    @interface_typelist |= typekit.interface_typelist
-                    typekit.registry.each(:with_aliases => true) do |typename, _|
+                    typekit.registry.each(with_aliases: true) do |typename, _|
                         typekits_by_type_name[typename] ||= Set.new
                         typekits_by_type_name[typename] << typekit
                     end
@@ -300,11 +299,8 @@ module ModelKit
                     end
                 end
 
-                def register_type_model(type, interface = true)
+                def register_type_model(type)
                     registry.merge type.registry.minimal(type.name)
-                    if interface
-                        interface_typelist << type.name
-                    end
                 end
                 
                 # Registers a callback that should be called with newly registered
@@ -328,7 +324,7 @@ module ModelKit
                 # @return [Model<Types::Type>] the corresponding type in
                 #   {#registry}
                 # @raise Types::NotFound if the type cannot be found
-                def resolve_type(type, options = Hash.new)
+                def resolve_type(type, define_dummy_types: false)
                     typename =
                         if type.respond_to?(:name)
                             type.name
@@ -336,10 +332,8 @@ module ModelKit
                         end
                     registry.get(typename)
                 rescue Types::NotFound => e
-                    if define_dummy_types? || options[:define_dummy_type]
-                        type = registry.create_null(typename)
-                        interface_typelist << typename
-                        return type
+                    if define_dummy_types? || define_dummy_types
+                        return registry.create_null(typename)
                     else raise e, "#{e.message} using #{self}", e.backtrace
                     end
                 end
@@ -353,7 +347,7 @@ module ModelKit
                 #
                 # @return [Set<Component::Typekit>] the list of typekits
                 # @raise [DefinitionTypekitNotFound] if no typekits define this type
-                def imported_typekits_for(typename, options = Hash.new)
+                def imported_typekits_for(typename, definition_typekits: true)
                     options = Kernel.validate_options options,
                         :definition_typekits => true
                     if typename.respond_to?(:name)
@@ -453,11 +447,8 @@ module ModelKit
                         return root_loader.register_project_model(project)
                     end
 
-                    project.tasks.each do |_, task_model|
-                        register_task_context_model(task_model)
-                    end
-                    project.deployers.each do |_, deployer_model|
-                        register_deployment_model(deployer_model)
+                    project.node_models.each do |_, node_model|
+                        register_node_model(node_model)
                     end
                     project_load_callbacks.each do |callback|
                         callback.call(project)
@@ -468,12 +459,12 @@ module ModelKit
                     loaded_projects.has_key?(name)
                 end
 
-                # Registers a new task model
+                # Registers a new node model
                 #
-                # @param [Component::TaskContext] model
+                # @param [Component::Node] model
                 # @return [void]
-                def register_task_context_model(model)
-                    loaded_task_models[model.name] = model
+                def register_node_model(model)
+                    loaded_node_models[model.name] = model
                 end
 
                 # Registers a new deployment model
@@ -521,12 +512,18 @@ module ModelKit
                     raise NotImplementedError
                 end
 
-                # Returns the task library name in which a task model is defined
+                # Returns the node library name in which a node model is defined
                 #
-                # @param [String] model_name the name of the task model to look for
+                # @param [String] model_name the name of the node model to look for
                 # @return [String,nil]
-                def find_task_library_from_task_model_name(name)
-                    raise NotImplementedError, "#{self.class} does not implement #find_task_library_from_task_model_name"
+                def find_node_library_from_node_model_name(name)
+                    loaded_projects.each_value do |project|
+                        if project.has_node_model?(name)
+                            return project
+                        end
+                    end
+
+                    raise ArgumentError, "#{self.class} cannot find the node library which defines #{name}. You need to load it explicitely with #node_library_model_from_name before calling #node_model_from_name"
                 end
 
                 # Returns the project that defines the given deployment
@@ -536,11 +533,11 @@ module ModelKit
                 def find_project_from_deployment_name(name)
                 end
 
-                # Returns the set of deployments that contain a certain task
+                # Returns the set of deployments that contain a certain node
                 #
                 # @param [String] name
                 # @return [Set<String>]
-                def find_deployments_from_deployed_task_name(name)
+                def find_deployments_from_deployed_node_name(name)
                 end
 
                 # Enumerates the names of all available projects

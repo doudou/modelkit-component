@@ -15,6 +15,13 @@ if ENV['TEST_ENABLE_COVERAGE'] == '1'
     end
 end
 
+begin
+    require 'pry'
+rescue LoadError
+    require 'modelkit/component'
+    ModelKit::Component.warn "debugging using pry is disabled as pry does not seem to be installed"
+end
+
 $LOAD_PATH.unshift File.expand_path('../lib', __FILE__)
 require 'modelkit/component'
 require 'minitest/autorun'
@@ -30,7 +37,7 @@ module ModelKit
                 @dummy_project ||= Project.new(dummy_loader, name: 'dummy')
             end
             def dummy_node
-                @dummy_node ||= Node.new(dummy_project, name: 'Task')
+                @dummy_node ||= Node.new_submodel(project: dummy_project, name: 'Task')
             end
 
             def create_dummy_type(typename)

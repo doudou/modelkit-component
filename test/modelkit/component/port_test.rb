@@ -19,6 +19,11 @@ module ModelKit::Component
             assert_same dummy_loader.registry.get('/double'), port.type
         end
 
+        it "raises NotImplementedError when #output_port is called" do
+            port = Port.new(dummy_node, 'test', '/double')
+            assert_raises(NotImplementedError) { port.output_port? }
+        end
+
         describe "#to_h" do
             it "marshals the port name" do
                 assert_equal 'test', port.to_h[:name]

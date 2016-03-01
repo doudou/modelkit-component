@@ -1,15 +1,10 @@
 module ModelKit
     module Component
         # Representation of a task's attribute or property
-        class ConfigurationObject
-            # This object's node
-            # @return [Node]
-            attr_accessor :node
-            # The property name
-            # @return [String]
-            attr_reader :name
+        class ConfigurationObject < InterfaceObject
             # The property type, as a ModelKit::Types::Type object from the
             # underlying project's type registry
+            #
             # @return [Model<Types::Type>]
             attr_reader :type
 
@@ -23,7 +18,7 @@ module ModelKit
 
             # Create a new property with the given name, type and default value
             def initialize(node, name, type, default_value: nil)
-                @node, @name = node, name.to_s
+                super(node, name)
                 @dynamic = false
                 @doc = nil
 

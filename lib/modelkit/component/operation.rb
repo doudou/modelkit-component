@@ -3,15 +3,11 @@ module ModelKit
         # Representation of an operation.
         #
         # Operations are procedure calls that are served by a {Node}
-        class Operation
+        class Operation < InterfaceObject
             class DuplicateArgument < ArgumentError; end
 
-            # The node this operation is part of
-            attr_reader :node
             # The loader used to resolve argument and return types
             attr_reader :loader
-            # The operation name
-            attr_reader :name
             # True if this operation runs in the callee's execution context, or
             # outside of it. The default is callee.
             attr_predicate :in_callee_thread?
@@ -46,15 +42,13 @@ module ModelKit
             attr_reader :return_value
 
             def initialize(node, name)
-                @node = node
-                @name = name.to_s
+                super
+
                 @loader = node.loader
                 @return_value = ReturnValue.new(VoidType, nil)
                 @arguments = []
                 @in_callee_thread = true
                 @doc = nil
-
-                super()
             end
 
             # Declares that the operation is executed outside the callee's

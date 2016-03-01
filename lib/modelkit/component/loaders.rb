@@ -8,5 +8,4 @@ module ModelKit
 end
 
 require 'modelkit/component/loaders/base'
-require 'modelkit/component/loaders/files'
 require 'modelkit/component/loaders/aggregate'
