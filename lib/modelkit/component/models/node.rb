@@ -196,7 +196,7 @@ module ModelKit
                 # @example
                 #   # The device name to connect to
                 #   attribute('device_name', '/std/string/, '')
-                def attribute(name, type, default_value: default_value)
+                def attribute(name, type, default_value: nil)
                     check_uniqueness(name)
                     attributes[name] = attr = configuration_object(Attribute, name, type, default_value: default_value)
                     singleton_class.class_eval do
