@@ -9,6 +9,7 @@ end
 require 'utilrb/module/attr_predicate'
 require 'utilrb/module/dsl_attribute'
 require 'set'
+require 'yaml'
 
 require 'metaruby/dsls'
 
