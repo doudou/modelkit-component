@@ -1,8 +1,12 @@
-# Modelkit::Component
+[![Build Status](https://travis-ci.org/doudou/modelkit-component.svg?branch=master)](https://travis-ci.org/doudou/modelkit-component)
+[![Gem Version](https://badge.fury.io/rb/modelkit-component.svg)](http://badge.fury.io/rb/modelkit-component)
+[![Documentation](http://b.repl.ca/v1/yard-docs-blue.png)](http://rubydoc.info/gems/modelkit-component/frames)
 
-Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/modelkit/component`. To experiment with that code, run `bin/console` for an interactive prompt.
+# ModelKit::Component
 
-TODO: Delete this and the text above, and describe your gem
+ModelKit is a group of Ruby gems that provide the parts needed to model
+components in a dataflow networks. modelkit-component is the part that deals
+with the node interface themselves.
 
 ## Installation
 
@@ -19,10 +23,6 @@ And then execute:
 Or install it yourself as:
 
     $ gem install modelkit-component
-
-## Usage
-
-TODO: Write usage instructions here
 
 ## Development
 
