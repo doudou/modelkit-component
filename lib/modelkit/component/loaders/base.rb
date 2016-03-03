@@ -178,7 +178,7 @@ module ModelKit
                     loaded_projects.has_key?(name)
                 end
 
-                def parse_typekit_text(text, path: path)
+                def parse_typekit_text(text, path: nil)
                     metainfo = YAML.load(text)
                     if xml_section_index = (text =~ /<typelib>/)
                         xml_section = text[xml_section_index..-1]
