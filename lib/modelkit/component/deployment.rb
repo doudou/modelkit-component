@@ -32,6 +32,11 @@ module ModelKit
                 deployed_nodes[name] = create_deployed_node(name, model)
             end
 
+            # Tests whether this deployment provides a node with a given name
+            def has_deployed_node?(name)
+                deployed_nodes.has_key?(name)
+            end
+
             # Resolves a deployed node by its name
             def deployed_node_from_name(name)
                 deployed_nodes.fetch(name)

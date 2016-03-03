@@ -5,6 +5,9 @@ module ModelKit
             # The loader that should be used to resolve dependencies
             attr_reader :loader
 
+            # The project's name
+            attr_reader :name
+
             # The project's typekit
             attr_accessor :typekit
 
@@ -22,31 +25,12 @@ module ModelKit
             # default
             attr_accessor :default_node_supermodel
 
-            # Create an empty project built on top of an empty loader
-            def self.blank
-                Project.new(Loaders::Base.new)
-            end
-
             def initialize(loader, name: nil)
                 @name = name
                 @loader = loader
                 @default_node_supermodel = Node
                 @node_models = Hash.new
                 @deployment_models = Hash.new
-            end
-
-            # Gets or sets the project's name
-            #
-            # @overload name
-            #   @return [String] this project's name
-            # @overload name(new_name)
-            #   @param [String] the name that should be set
-            #   @return [self]
-            dsl_attribute :name do |new|
-                if !new.respond_to?(:to_str)
-                    raise ArgumentError, 'name should be a string'
-                end
-                new
             end
 
             # Gets or sets the project's version
@@ -123,15 +107,31 @@ module ModelKit
                 end
             end
 
+            # Enumerate this project's own node models
+            def each_node_model(&block)
+                node_models.each_value(&block)
+            end
+
             # Checks if this project already has a node model with the given
             # name
+            #
+            # Unlike {#node_model_from_name}, it does not resolve the name on
+            # the underlying {#loader}
             def has_node_model?(name)
                 node_models.has_key?(name.to_str)
             end
 
-            # (see Loaders::Base#node_model_from_name)
+            # Resolve a node model from its name
+            #
+            # This will either resolve it locally, or attempt to resolve it from
+            # {#loader}
             def node_model_from_name(name)
                 node_models[name] || loader.node_model_from_name(name)
+            end
+
+            # Enumerate this project's own node models
+            def each_deployment_model(&block)
+                deployment_models.each_value(&block)
             end
 
             def has_deployment_model?(name)

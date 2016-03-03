@@ -2,7 +2,7 @@ require 'utilrb/logger'
 
 module ModelKit
     module Component
-        extend Logger::Root('ModelKit::Component', Logger::INFO)
+        extend Logger::Root('ModelKit::Component', Logger::WARN)
     end
 end
 
@@ -15,7 +15,6 @@ require 'metaruby/dsls'
 require 'modelkit/types'
 
 require 'modelkit/component/version'
-require 'modelkit/component/doc'
 
 require 'modelkit/component/exceptions'
 

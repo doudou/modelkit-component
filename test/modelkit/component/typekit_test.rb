@@ -10,8 +10,7 @@ module ModelKit::Component
         describe "#self_types" do
             it "lists the types that are defined by the typekit" do
                 types = [typekit.create_null('/test0'), typekit.create_null('/test1')]
-                assert_equal Set['/test0', '/test1'], typekit.typelist
-                assert_equal types.to_set, typekit.self_types.to_set
+                assert_equal types.to_set, typekit.self_types
             end
         end
 

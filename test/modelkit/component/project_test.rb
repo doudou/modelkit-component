@@ -4,8 +4,8 @@ module ModelKit::Component
     describe Project do
         attr_reader :project, :loader
         before do
-            @project = ModelKit::Component::Project.blank
-            @loader = project.loader
+            @loader = Loaders::Base.new
+            @project = Project.new(loader)
         end
 
         describe "#node" do
@@ -21,21 +21,6 @@ module ModelKit::Component
             it "raises ArgumentError if the node's name already exists" do
                 project.node 'Task'
                 assert_raises(ArgumentError) { project.node 'Task' }
-            end
-        end
-
-        describe "#name" do
-            it "sets the project's name and returns self" do
-                assert_same project, project.name('Test')
-            end
-            it "returns the current project name" do
-                project.name('Test')
-                assert_equal 'Test', project.name
-            end
-            it "raises ArgumentError if the new name is not a string" do
-                assert_raises(ArgumentError) do
-                    project.name(flexmock)
-                end
             end
         end
 
@@ -63,8 +48,7 @@ module ModelKit::Component
             end
 
             it "resolves the node library by name" do
-                other_p = Project.new(loader)
-                other_p.name 'test'
+                other_p = Project.new(loader, name: 'test')
                 test_node = other_p.node 'Test'
                 project.loader.register_project_model(other_p)
 

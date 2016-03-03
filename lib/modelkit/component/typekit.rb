@@ -34,31 +34,37 @@ module ModelKit
 
             # The set of type models that are defined by this typekit
             def self_types
-                typelist.map { |name| registry.get(name) }
+                typelist
+            end
+
+            # Registers this type as a type that is defined by self
+            def register_type(type)
+                typelist << type
+            end
+
+            # Registers this type as a type that is defined by self and that can
+            # be used on an interface
+            def register_interface_type(type)
+                register_type(type)
+                interface_typelist << type
             end
 
             # Tests whether this typekit defines at least one array of the given
             # type
             #
-            # @param [String,#name] type
+            # @param [Type] type
             def defines_array_of?(type)
-                typename = if type.respond_to?(:name) then type.name
-                           else type.to_str
-                           end
-
-                rx = /^#{Regexp.quote(typename)}(\[\d+\])$/
-                typelist.any? { |str| rx === str }
+                type = resolve_type(type)
+                typelist.any? { |t| (t <= ModelKit::Types::ArrayType) && (t.deference == type) }
             end
-
 
             # Tests whether a type is defined by this typekit
             #
             # @param [String,#name] type
             def include?(type)
-                typename = if type.respond_to?(:name) then type.name
-                           else type.to_str
-                           end
-                typelist.include?(typename)
+                typelist.include?(resolve_type(type))
+            rescue ModelKit::Types::NotFound
+                false
             end
 
             # Tests whether a type is defined by this typekit, and is an
@@ -66,10 +72,9 @@ module ModelKit
             #
             # @param [String,#name] type
             def interface_type?(type)
-                typename = if type.respond_to?(:name) then type.name
-                           else type.to_str
-                           end
-                interface_typelist.include?(typename)
+                interface_typelist.include?(resolve_type(type))
+            rescue ModelKit::Types::NotFound
+                false
             end
 
             # Returns a matching type in {#registry}
@@ -108,9 +113,10 @@ module ModelKit
                     interface = !!$1
                     category  = $2
                     type = registry.send("create_#{category}", *args, &block)
-                    typelist << type.name
                     if interface
-                        interface_typelist << type.name
+                        register_interface_type(type)
+                    else
+                        register_type(type)
                     end
                     type
                 else super

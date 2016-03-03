@@ -10,5 +10,6 @@ require 'modelkit/component/deployment_test'
 
 require 'modelkit/component/typekit_test'
 require 'modelkit/component/project_test'
-#require 'modelkit/component/loaders/base_test'
+require 'modelkit/component/loaders/base_test'
+require 'modelkit/component/loaders/aggregate_test'
 
